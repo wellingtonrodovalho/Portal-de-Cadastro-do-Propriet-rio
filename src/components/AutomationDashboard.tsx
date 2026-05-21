@@ -161,7 +161,7 @@ FORMALIZACAO ASSINATURA:
 * Plataforma declarada: ${data.signaturePlatform || 'Autentique'}
 ==================================================
 
-Uma copia deste laudo de integracao automatica tambem foi arquivada com sucesso para homologacao operacional de Wellington Rodovalho (wellington.rodovalho@gmail.com).
+Uma copia deste laudo de integracao automatica tambem foi arquivada com sucesso para homologacao operacional de Wellington Rodovalho Fonseca (wellington.rodovalho@gmail.com).
 
 Atenciosamente,
 Portal de Cadastro de Proprietarios e Imoveis`;
@@ -183,7 +183,7 @@ Portal de Cadastro de Proprietarios e Imoveis`;
       `Destinatario 1: Enviando copia para o Proprietario: ${data.ownerEmail || 'E-mail nao cadastrado'}`,
       "Destinatario 1: E-mail aceito e entregue na Caixa de Entrada do destino! [OK]",
       `Destinatario 2: Enviando copia administrativa para: wellington.rodovalho@gmail.com`,
-      "Destinatario 2: E-mail aceito e entregue na Caixa de Entrada de Wellington Rodovalho! [OK]",
+      "Destinatario 2: E-mail aceito e entregue na Caixa de Entrada de Wellington Rodovalho Fonseca! [OK]",
       "Fluxo de confirmacao operacional concluido com sucesso de ponta a ponta!",
     ];
 

@@ -6,7 +6,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Building2, Sparkles, ChevronRight, ChevronLeft, Send, 
-  Trash2, Landmark, HelpCircle, Check, AlertCircle, FilePlus2 
+  Trash2, Landmark, HelpCircle, Check, AlertCircle, FilePlus2,
+  Lock, Unlock, ShieldCheck, CheckCircle2, FileDown, RotateCcw
 } from 'lucide-react';
 import { PropertyOwnerData, INITIAL_FORM_DATA, SubmittedRegistration } from './types';
 import FormTabs from './components/FormTabs';
@@ -17,8 +18,15 @@ import MaintenanceForm from './components/MaintenanceForm';
 import FinancialForm from './components/FinancialForm';
 import ConsentSignatureForm from './components/ConsentSignatureForm';
 import AutomationDashboard from './components/AutomationDashboard';
+import { downloadRealPDF } from './utils';
 
 export default function App() {
+  // Authentication & Restricted access states
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [showAdminLoginModal, setShowAdminLoginModal] = useState<boolean>(false);
+  const [adminPasswordInput, setAdminPasswordInput] = useState<string>('');
+  const [loginError, setLoginError] = useState<string>('');
+
   // Navigation states
   const [activeTab, setActiveTab] = useState<'form' | 'dashboard'>('form');
   const [currentStep, setCurrentStep] = useState<number>(1);
@@ -28,6 +36,8 @@ export default function App() {
   // Core Data
   const [formData, setFormData] = useState<PropertyOwnerData>(INITIAL_FORM_DATA);
   const [submissions, setSubmissions] = useState<SubmittedRegistration[]>([]);
+  const [isSubmittedSuccess, setIsSubmittedSuccess] = useState<boolean>(false);
+  const [submittedData, setSubmittedData] = useState<PropertyOwnerData | null>(null);
 
   // Validation / Error Tracking per step
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -50,11 +60,11 @@ export default function App() {
       if (persistedSubmissions) {
         const parsedList = JSON.parse(persistedSubmissions);
         setSubmissions(parsedList);
-        if (parsedList.length > 0) {
-          // If registrations exist, default tab to dashboard for better flow visibility, or keep it optional
-          setActiveTab('dashboard');
-        }
       }
+
+      // Check if logged in as administrator (Wellington Rodovalho Fonseca)
+      const adminVerifiedValue = localStorage.getItem('owner_admin_verified') === 'true';
+      setIsAdmin(adminVerifiedValue);
     } catch (e) {
       console.error('Failure reloading persisted data:', e);
     }
@@ -340,6 +350,10 @@ export default function App() {
     // Save to localStorage
     localStorage.setItem('owner_registrations_list', JSON.stringify(updatedSubmissions));
     
+    // Capture data for success receipt page
+    setSubmittedData({ ...formData });
+    setIsSubmittedSuccess(true);
+
     // Clear the active draft
     localStorage.removeItem('owner_registration_draft');
     setFormData(INITIAL_FORM_DATA);
@@ -347,9 +361,30 @@ export default function App() {
     setCurrentStep(1);
     setErrors({});
 
-    // Switch view to dashboard
-    setActiveTab('dashboard');
-    triggerToast('Cadastro SUBMETIDO com sucesso! Automações operacionais ativadas.');
+    triggerToast('Cadastro submetido com sucesso! Seu laudo em PDF foi gerado.');
+  };
+
+  const handleAdminVerify = (password: string) => {
+    const cleanPass = password.trim().toLowerCase();
+    if (cleanPass === 'wellington' || cleanPass === 'admin' || cleanPass === 'wellington2026') {
+      setIsAdmin(true);
+      localStorage.setItem('owner_admin_verified', 'true');
+      setActiveTab('dashboard');
+      setShowAdminLoginModal(false);
+      setAdminPasswordInput('');
+      setLoginError('');
+      triggerToast('Autenticação do Administrador com sucesso! Bem-vindo, Wellington Rodovalho Fonseca.');
+    } else {
+      setLoginError('Senha de Administrador incorreta ou inválida!');
+    }
+  };
+
+  const handleAdminLogout = () => {
+    setIsAdmin(false);
+    localStorage.removeItem('owner_admin_verified');
+    setActiveTab('form');
+    setIsSubmittedSuccess(false);
+    triggerToast('Sessão encerrada. Painel ocultado com sucesso.');
   };
 
   const handleRemoveSubmission = (id: string) => {
@@ -364,7 +399,7 @@ export default function App() {
   const executeQuickDemoFill = () => {
     // Instantly fills the active form with clean test values for demonstrations
     updateFormData({
-      ownerName: 'Wellington Rodovalho da Silva',
+      ownerName: 'Wellington Rodovalho Fonseca',
       ownerTaxId: '123.456.789-00',
       ownerEmail: 'Wellington.Rodovalho@gmail.com',
       ownerPhone: '(11) 98765-4321',
@@ -389,7 +424,7 @@ export default function App() {
       utilitiesStatus: 'Revisadas e 100% funcionais',
       acMaintenance: 'Higienizados recentemente (menos de 6 meses)',
       chronicProblems: 'Nada consta',
-      bankAccountHolderName: 'Wellington Rodovalho da Silva',
+      bankAccountHolderName: 'Wellington Rodovalho Fonseca',
       bankAccountHolderTaxId: '123.456.789-00',
       bankName: 'Banco Nubank S.A.',
       bankAccountType: 'Conta Corrente',
@@ -429,14 +464,15 @@ export default function App() {
 
           <div className="flex items-center gap-3">
             {/* Direct Form vs Dashboard Tab toggler */}
-            <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-205">
+            <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-205 items-center">
               <button
                 onClick={() => {
+                  setIsSubmittedSuccess(false);
                   setActiveTab('form');
                   setErrors({});
                 }}
                 className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-                  activeTab === 'form'
+                  activeTab === 'form' && !isSubmittedSuccess
                     ? 'bg-white text-slate-900 shadow-xs'
                     : 'text-slate-500 hover:text-slate-900'
                 }`}
@@ -444,30 +480,57 @@ export default function App() {
                 Formulário Cadastro
               </button>
               
-              <button
-                onClick={() => setActiveTab('dashboard')}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
-                  activeTab === 'dashboard'
-                    ? 'bg-white text-slate-900 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-900'
-                }`}
-              >
-                <span>Fluxo Automação</span>
-                {submissions.length > 0 && (
-                  <span className="w-4 h-4 rounded-full bg-emerald-600 text-white text-[9px] font-bold flex items-center justify-center">
-                    {submissions.length}
-                  </span>
-                )}
-              </button>
+              {isAdmin ? (
+                <button
+                  onClick={() => {
+                    setIsSubmittedSuccess(false);
+                    setActiveTab('dashboard');
+                  }}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                    activeTab === 'dashboard'
+                      ? 'bg-white text-slate-900 shadow-xs'
+                      : 'text-slate-500 hover:text-slate-900'
+                  }`}
+                >
+                  <Unlock className="w-3 h-3 text-emerald-600 animate-pulse" />
+                  <span>Fluxo Automação</span>
+                  {submissions.length > 0 && (
+                    <span className="w-4 h-4 rounded-full bg-emerald-600 text-white text-[9px] font-bold flex items-center justify-center">
+                      {submissions.length}
+                    </span>
+                  )}
+                </button>
+              ) : (
+                <button
+                  onClick={() => setShowAdminLoginModal(true)}
+                  className="px-3 py-1.5 text-xs font-semibold text-slate-400 hover:text-slate-700 rounded-lg transition-all cursor-pointer flex items-center gap-1"
+                  title="Acesso exclusivo ao Administrador (Wellington Rodovalho Fonseca)"
+                >
+                  <Lock className="w-3 h-3 text-slate-400" />
+                  <span>Painel Admin</span>
+                </button>
+              )}
             </div>
 
+            {/* Lock/Logout button when logged in as Admin */}
+            {isAdmin && (
+              <button
+                onClick={handleAdminLogout}
+                className="text-[10px] font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-2.5 py-1.5 rounded-xl transition-all cursor-pointer inline-flex items-center gap-1"
+                title="Deslogar e bloquear painel administrativo"
+              >
+                <Lock className="w-3 h-3 text-rose-600 animate-pulse" />
+                <span>Bloquear</span>
+              </button>
+            )}
+
             {/* Quick Demo Fill button to help Wellington test easily */}
-            {activeTab === 'form' && (
+            {activeTab === 'form' && !isSubmittedSuccess && (
               <button
                 onClick={executeQuickDemoFill}
                 type="button"
                 className="text-[10px] font-bold text-emerald-800 bg-emerald-100/50 hover:bg-emerald-100 border border-emerald-200/40 px-3 py-1.5 rounded-xl transition-all cursor-pointer inline-flex items-center gap-1"
-                title="Preencher com dados exemplo para Wellington"
+                title="Preencher com dados exemplo para Wellington Rodovalho Fonseca"
               >
                 <Sparkles className="w-3 h-3 text-emerald-700 animate-pulse" />
                 <span>Simular Preenchimento</span>
@@ -478,9 +541,104 @@ export default function App() {
       </header>
 
       {/* Main Content Pane */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 lg:p-8">
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 lg:p-8 animate-fadeIn">
         
-        {activeTab === 'form' ? (
+        {isSubmittedSuccess && submittedData ? (
+          /* Beautiful digital receipt view for the owner who just completed the form */
+          <div className="max-w-xl mx-auto bg-white rounded-3xl border border-slate-100 shadow-xl p-6 sm:p-10 text-center space-y-6 py-12 relative overflow-hidden">
+            
+            {/* Top design accent */}
+            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-600 to-emerald-400" />
+
+            {/* Success checkmark graphic with heartbeat halo */}
+            <div className="mx-auto w-16 h-16 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shadow-xs relative">
+              <div className="absolute inset-0 rounded-full bg-emerald-500/10 animate-ping" />
+              <CheckCircle2 className="w-8 h-8 text-emerald-600 relative z-10 animate-scaleUp" />
+            </div>
+
+            {/* Title & Onboarding confirmation */}
+            <div className="space-y-1.5">
+              <span className="text-[10px] bg-emerald-100 text-emerald-900 font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                Cadastro Enviado com Sucesso
+              </span>
+              <h2 className="text-xl font-black text-slate-900 tracking-tight pt-1">
+                Seu Imóvel está Pronto para Homologação!
+              </h2>
+              <p className="text-slate-500 text-xs leading-relaxed max-w-lg mx-auto">
+                Prezado(a) <span className="font-bold text-slate-800">{submittedData.ownerName}</span>, confirmamos o recebimento seguro de sua ficha cadastral. Os dados operacionais, de manutenção e de repasses financeiros foram arquivados para homologação da equipe técnica.
+              </p>
+            </div>
+
+            {/* Summary details container */}
+            <div className="bg-slate-50 border border-slate-100 p-4.5 rounded-2xl text-left text-xs space-y-2.5 max-w-md mx-auto shadow-inner">
+              <div className="flex justify-between border-b border-slate-200/50 pb-2">
+                <span className="text-slate-400 font-medium">Controle de Onboarding:</span>
+                <span className="font-mono font-bold text-slate-800">REG-{Date.now().toString().slice(-6)}</span>
+              </div>
+              <div className="space-y-1.5 text-slate-600">
+                <p><strong>Proprietário:</strong> <span className="text-slate-800">{submittedData.ownerName}</span></p>
+                <p><strong>CPF/CNPJ:</strong> <span className="text-slate-800">{submittedData.ownerTaxId}</span></p>
+                <p><strong>Imóvel:</strong> <span className="text-slate-805">{submittedData.propStreet}, No {submittedData.propNumber} - {submittedData.propNeighborhood}</span></p>
+                <p><strong>Chave Pix:</strong> <span className="text-slate-800">{submittedData.pixKey} ({submittedData.bankName})</span></p>
+              </div>
+
+              <div className="border-t border-slate-200/50 pt-3 space-y-2">
+                <button
+                  type="button"
+                  onClick={() => downloadRealPDF(submittedData)}
+                  className="w-full text-xs font-bold text-white bg-emerald-950 hover:bg-emerald-900 py-3 px-4 rounded-xl inline-flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md shadow-emerald-950/10 hover:scale-[1.01]"
+                >
+                  <FileDown className="w-4 h-4 text-emerald-300" />
+                  <span>Baixar Minha Ficha Oficial em PDF</span>
+                </button>
+                <p className="text-[10px] text-slate-400 text-center leading-normal">
+                  Laudo expedido eletronicamente em conformidade com o Artigo 7 da Lei Geral de Proteção de Dados (LGPD).
+                </p>
+              </div>
+            </div>
+
+            {/* Instruction timeline */}
+            <div className="max-w-md mx-auto text-left border-l-2 border-emerald-500 pl-4 py-1.5 space-y-2 text-xs text-slate-600">
+              <h4 className="font-bold text-slate-800 uppercase tracking-wider text-[11px]">Próximos Passos Operacionais:</h4>
+              <p className="leading-relaxed">
+                <strong className="text-slate-800">1. Vistoria e Book Fotográfico:</strong> Faremos o agendamento da visita presencial de engenharia para capturar as mídias da acomodação.
+              </p>
+              <p className="leading-relaxed">
+                <strong className="text-slate-800">2. Assinatura do Contrato:</strong> O envelope será enviado por <span className="font-bold text-slate-800">{submittedData.signatureChannel}</span> via <span className="font-bold text-emerald-800">{submittedData.signaturePlatform || 'plataforma homologada'}</span> para formalizar as responsabilidades comerciais jurídicas.
+              </p>
+            </div>
+
+            {/* Screen triggers */}
+            <div className="pt-2 flex flex-col sm:flex-row justify-center gap-3 max-w-sm mx-auto">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSubmittedSuccess(false);
+                  setSubmittedData(null);
+                  setCurrentStep(1);
+                  setErrors({});
+                }}
+                className="text-xs font-bold bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 py-2.5 px-4 rounded-xl cursor-pointer transition-colors shadow-xs"
+              >
+                Cadastrar Outro Imóvel
+              </button>
+
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSubmittedSuccess(false);
+                    setActiveTab('dashboard');
+                  }}
+                  className="text-xs font-bold text-white bg-slate-900 hover:bg-slate-950 py-2.5 px-4 rounded-xl cursor-pointer transition-colors shadow-xs"
+                >
+                  Painel de Automação
+                </button>
+              )}
+            </div>
+
+          </div>
+        ) : activeTab === 'form' ? (
           <div className="max-w-5xl mx-auto space-y-6">
             
             {/* Horizontal Tabs at the top of the form */}
@@ -595,7 +753,7 @@ export default function App() {
                     onClick={handleNextStep}
                     className="inline-flex items-center gap-2 py-2 px-5 bg-emerald-950 text-emerald-300 font-bold text-xs rounded-xl hover:bg-emerald-900 transition-all shadow-md shadow-emerald-900/10 cursor-pointer"
                   >
-                    <span>{currentStep === 6 ? 'Finalizar e Ativar Automação' : 'Avançar Seção'}</span>
+                    <span>{currentStep === 6 ? 'Finalizar e Enviar Ficha' : 'Avançar Seção'}</span>
                     {currentStep === 6 ? (
                       <Send className="w-3.5 h-3.5 text-emerald-300" />
                     ) : (
@@ -619,19 +777,105 @@ export default function App() {
 
           </div>
         ) : (
-          /* Automation outcome panel */
-          <AutomationDashboard
-            registrations={submissions}
-            onAddNew={() => {
-              setActiveTab('form');
-              setCurrentStep(1);
-            }}
-            onRemove={handleRemoveSubmission}
-            userEmail="Wellington.Rodovalho@gmail.com"
-          />
+          /* Automation outcome panel (ONLY visible for verified admin Wellington Rodovalho Fonseca) */
+          isAdmin ? (
+            <AutomationDashboard
+              registrations={submissions}
+              onAddNew={() => {
+                setActiveTab('form');
+                setCurrentStep(1);
+              }}
+              onRemove={handleRemoveSubmission}
+              userEmail="Wellington.Rodovalho@gmail.com"
+            />
+          ) : (
+            <div className="max-w-md mx-auto text-center py-16 space-y-4">
+              <Lock className="w-12 h-12 text-slate-300 mx-auto" />
+              <p className="text-sm text-slate-500 font-semibold">Este painel operacional necessita de privilégios administrativos.</p>
+              <button
+                onClick={() => setShowAdminLoginModal(true)}
+                className="text-xs bg-slate-900 text-white font-bold py-2 px-4 rounded-xl cursor-pointer"
+              >
+                Autenticar Administrador
+              </button>
+            </div>
+          )
         )}
 
       </main>
+
+      {/* Admin Verification Modal */}
+      {showAdminLoginModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-md p-4 animate-fadeIn">
+          <div className="bg-white rounded-3xl border border-slate-100 shadow-2xl max-w-sm w-full p-6 sm:p-8 space-y-5 relative animate-scaleUp">
+            
+            <div className="text-center space-y-2">
+              <div className="mx-auto w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-800">
+                <Lock className="w-5 h-5 text-emerald-700 animate-pulse" />
+              </div>
+              <h3 className="text-base font-bold text-slate-900 leading-none">Acesso Restrito - Wellington Rodovalho Fonseca</h3>
+              <p className="text-[11px] text-slate-400">
+                Digite a senha administrativa para liberar o Painel de Automação e as fichas de integração.
+              </p>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleAdminVerify(adminPasswordInput);
+              }}
+              className="space-y-4"
+            >
+              <div className="space-y-1 text-left">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Chave de Administrador (Senha)</label>
+                <input
+                  type="password"
+                  placeholder="Ex: wellington"
+                  value={adminPasswordInput}
+                  onChange={(e) => {
+                    setAdminPasswordInput(e.target.value);
+                    setLoginError('');
+                  }}
+                  className="w-full text-xs font-semibold px-4 py-3 rounded-xl border border-slate-200 outline-hidden focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 transition-all bg-slate-50/50"
+                  autoFocus
+                />
+                
+                {loginError && (
+                  <p className="text-[10px] text-rose-600 font-bold flex items-center gap-1 pt-1 animate-bounce">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    <span>{loginError}</span>
+                  </p>
+                )}
+                
+                <p className="text-[9.5px] text-slate-400 leading-normal pt-1.5">
+                  Dica: Para fins de testes, homologação e avaliação comercial, utilize a chave <strong className="text-slate-600 font-bold">wellington</strong> (ou <strong className="text-slate-600 font-bold">admin</strong>).
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAdminLoginModal(false);
+                    setAdminPasswordInput('');
+                    setLoginError('');
+                  }}
+                  className="py-2.5 px-4 rounded-xl text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-emerald-950 hover:bg-emerald-900 transition-colors shadow-sm cursor-pointer"
+                >
+                  Confirmar
+                </button>
+              </div>
+
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Humble aesthetic footer */}
       <footer className="bg-white border-t border-slate-100 py-6 text-center text-xs text-slate-400 shrink-0">

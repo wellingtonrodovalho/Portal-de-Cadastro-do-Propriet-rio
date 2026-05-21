@@ -76,7 +76,7 @@ export default function FinancialForm({ data, updateData, errors }: FinancialFor
             <input
               id="bankAccountHolderName"
               type="text"
-              placeholder="Ex: Wellington Rodovalho da Silva"
+              placeholder="Ex: Wellington Rodovalho Fonseca"
               value={data.bankAccountHolderName}
               onChange={(e) => updateData({ bankAccountHolderName: e.target.value })}
               className={`w-full pl-10 pr-4 py-2.5 bg-slate-50/50 rounded-xl border ${
