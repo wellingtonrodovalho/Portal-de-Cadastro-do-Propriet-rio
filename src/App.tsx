@@ -878,9 +878,54 @@ export default function App() {
       )}
 
       {/* Humble aesthetic footer */}
-      <footer className="bg-white border-t border-slate-100 py-6 text-center text-xs text-slate-400 shrink-0">
-        <p className="font-semibold text-slate-500">Administradora Comercial & Convenções Digitais</p>
-        <p className="mt-1">Padrão em conformidade com o Regulamento de Locações Prediais Urbano e regras do Comitê de Direito Digital.</p>
+      <footer className="bg-white border-t border-slate-100 py-8 text-xs text-slate-500 shrink-0">
+        <div className="max-w-5xl mx-auto px-4 space-y-6">
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left border-b border-slate-100 pb-6">
+            
+            {/* Col 1: Broker Info */}
+            <div className="space-y-1.5">
+              <h4 className="font-bold text-slate-800 text-[11px] uppercase tracking-wider">Corretor de Imóveis</h4>
+              <p className="text-[11px] font-semibold text-slate-755">WELLINGTON RODOVALHO FONSECA</p>
+              <div className="text-[10px] text-slate-400 space-y-0.5">
+                <p><span className="font-medium text-slate-500">CRECI:</span> <strong className="text-slate-600">CRECI-GO 42695</strong></p>
+                <p><span className="font-medium text-slate-500">CNAI:</span> <strong className="text-slate-600">54826</strong></p>
+                <p><span className="font-medium text-slate-500">CNAE:</span> <strong className="text-slate-600">6821-8/02</strong> - Corretagem de Imóveis</p>
+              </div>
+            </div>
+
+            {/* Col 2: Registry & Fiscal */}
+            <div className="space-y-1.5">
+              <h4 className="font-bold text-slate-800 text-[11px] uppercase tracking-wider">Identificação Fiscal</h4>
+              <div className="text-[10px] text-slate-400 space-y-1">
+                <p><span className="font-medium text-slate-500">CPF:</span> <strong className="font-mono text-slate-705">269.462.701-34</strong></p>
+                <p><span className="font-medium text-slate-500">CAEPF:</span> <strong className="font-mono text-slate-705">269.462.701/001-49</strong></p>
+              </div>
+            </div>
+
+            {/* Col 3: Financial Key */}
+            <div className="space-y-1.5">
+              <h4 className="font-bold text-slate-800 text-[11px] uppercase tracking-wider">Canal Oficial Financeiro</h4>
+              <p className="text-[10px] text-slate-400 leading-normal">
+                Para repasses, reservas e depósitos de caução:
+              </p>
+              <div className="bg-emerald-50/50 border border-emerald-100 px-2.5 py-1.5 rounded-xl inline-block mt-1">
+                <p className="text-[10px] font-bold text-emerald-950 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-605 animate-pulse"></span>
+                  <span>Chave Pix:</span> 
+                  <strong className="font-mono select-all text-emerald-900">reservas@alugagoias.com.br</strong>
+                </p>
+              </div>
+            </div>
+
+          </div>
+
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-3 text-center sm:text-left text-[10px] text-slate-400">
+            <p className="font-semibold text-slate-500">Administradora Comercial & Convenções Digitais</p>
+            <p className="max-w-md sm:text-right leading-normal">Em conformidade com o Regulamento de Locações Prediais Urbano, Lei Geral de Proteção de Dados (LGPD) e diretrizes autorizadas do Comitê de Direito Digital.</p>
+          </div>
+
+        </div>
       </footer>
 
     </div>
