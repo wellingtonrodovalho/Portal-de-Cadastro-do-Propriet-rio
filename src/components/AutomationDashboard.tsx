@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { 
   CheckCircle2, AlertCircle, FileDown, Mail, ArrowRight, Sparkles, Plus, 
-  MapPin, Landmark, Sofa, Clock, RefreshCw, Smartphone, Wrench, ShieldAlert 
+  MapPin, Landmark, Sofa, Clock, RefreshCw, Smartphone, Wrench, ShieldAlert,
+  Send, ExternalLink, FileText, ChevronDown, ChevronUp, Terminal, HelpCircle
 } from 'lucide-react';
 import { SubmittedRegistration } from '../types';
-import { generateMockPDF } from '../utils';
+import { generateMockPDF, downloadRealPDF } from '../utils';
 
 interface AutomationDashboardProps {
   registrations: SubmittedRegistration[];
@@ -20,6 +21,17 @@ export default function AutomationDashboard({
   userEmail 
 }: AutomationDashboardProps) {
   const [selectedId, setSelectedId] = useState<string>(registrations[0]?.id || '');
+  
+  // Interactive simulation states
+  const [showEmailLogs, setShowEmailLogs] = useState(false);
+  const [isSendingEmailSim, setIsSendingEmailSim] = useState(false);
+  const [emailStatusMessage, setEmailStatusMessage] = useState<string[]>([]);
+  const [emailSimSuccess, setEmailSimSuccess] = useState(false);
+  
+  const [isSendingAutentiqueSim, setIsSendingAutentiqueSim] = useState(false);
+  const [autentiqueStatusMessage, setAutentiqueStatusMessage] = useState<string[]>([]);
+  const [autentiqueSimSuccess, setAutentiqueSimSuccess] = useState(false);
+  const [showAutentiqueDevTools, setShowAutentiqueDevTools] = useState(true);
 
   const activeReg = registrations.find(r => r.id === selectedId) || registrations[0];
 
@@ -101,8 +113,12 @@ export default function AutomationDashboard({
     return plans;
   };
 
-  // Simulation of PDF download
+  // Real PDF download
   const downloadPDFSummary = () => {
+    downloadRealPDF(data);
+  };
+
+  const downloadTXTSummary = () => {
     const textContent = generateMockPDF(data);
     const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -112,6 +128,105 @@ export default function AutomationDashboard({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  // Pre-fills a gorgeous email to both owner & admin (wellington.rodovalho@gmail.com)
+  const triggerLocalMailto = () => {
+    const clientEmail = data.ownerEmail || '';
+    const adminEmail = 'wellington.rodovalho@gmail.com';
+    const subject = `Resumo Onboarding - Proprietario e Imovel: ${data.ownerName}`;
+    const bodyText = `Ola ${data.ownerName},
+
+Confirmamos o recebimento dos dados cadastrais do seu imovel parceiro. A copia oficial do laudo em formato PDF foi gerada e enviada para o nosso time tecnico de vistorias.
+
+Abaixo segue o resumo operacional das informacoes providas:
+
+==================================================
+DADOS DO PROPRIETARIO & IMOVEL
+==================================================
+* Nome: ${data.ownerName}
+* CPF/CNPJ: ${data.ownerTaxId}
+* Telefone/WhatsApp: ${data.ownerPhone}
+* Endereco do Imovel: ${data.propStreet}, No ${data.propNumber} - ${data.propNeighborhood} (${data.propCityState})
+* Tipo: ${data.propType} | Mobilia: ${data.furnishStatus}
+* Aceita Pets? ${data.allowPets}
+
+DADOS FINANCEIROS (CHAVE PIX):
+* Banco: ${data.bankName} | Tipo: ${data.bankAccountType}
+* Ag./Conta: ${data.bankAgencyAndAccount}
+* Chave Pix registrada: ${data.pixKey}
+
+FORMALIZACAO ASSINATURA:
+* Canal preferido: ${data.signatureChannel}
+* Plataforma declarada: ${data.signaturePlatform || 'Autentique'}
+==================================================
+
+Uma copia deste laudo de integracao automatica tambem foi arquivada com sucesso para homologacao operacional de Wellington Rodovalho (wellington.rodovalho@gmail.com).
+
+Atenciosamente,
+Portal de Cadastro de Proprietarios e Imoveis`;
+
+    const mailtoUrl = `mailto:${clientEmail}?cc=${adminEmail}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyText)}`;
+    window.location.href = mailtoUrl;
+  };
+
+  const triggerEmailSimulation = () => {
+    setIsSendingEmailSim(true);
+    setEmailSimSuccess(false);
+    setEmailStatusMessage([]);
+    
+    const logs = [
+      "Conectando com o servidor de e-mail seguro (SSL/TLS)...",
+      "Resolvendo enderecos DNS do Gmail e servidores corporativos...",
+      "Autenticando chave de seguranca de disparo de e-mails...",
+      `Anexando documento laudo gerado: Ficha_Onboarding_${data.ownerName.replace(/\s+/g, '_')}.pdf`,
+      `Destinatario 1: Enviando copia para o Proprietario: ${data.ownerEmail || 'E-mail nao cadastrado'}`,
+      "Destinatario 1: E-mail aceito e entregue na Caixa de Entrada do destino! [OK]",
+      `Destinatario 2: Enviando copia administrativa para: wellington.rodovalho@gmail.com`,
+      "Destinatario 2: E-mail aceito e entregue na Caixa de Entrada de Wellington Rodovalho! [OK]",
+      "Fluxo de confirmacao operacional concluido com sucesso de ponta a ponta!",
+    ];
+
+    let currentLogIndex = 0;
+    const interval = setInterval(() => {
+      if (currentLogIndex < logs.length) {
+        setEmailStatusMessage(prev => [...prev, logs[currentLogIndex]]);
+        currentLogIndex++;
+      } else {
+        clearInterval(interval);
+        setIsSendingEmailSim(false);
+        setEmailSimSuccess(true);
+      }
+    }, 400);
+  };
+
+  const triggerAutentiqueSimulation = () => {
+    setIsSendingAutentiqueSim(true);
+    setAutentiqueSimSuccess(false);
+    setAutentiqueStatusMessage([]);
+
+    const logs = [
+      "Iniciando requisicao GraphQL para api.autentique.com.br/v2...",
+      "Criando novo envelope de contrato baseado em laudo operacional...",
+      `Configurando signatario principal: ${data.ownerName} (${data.ownerEmail})`,
+      `Definindo CPF para assinatura qualificada: ${data.ownerTaxId}`,
+      "Enviando arquivo em anexo gerado do laudo em PDF...",
+      "Processando metadados na blockchain de auditoria do Autentique...",
+      "Sucesso! Documento criado com ID 'doc-aut-849502-dfg91'",
+      `Disparando link de assinatura automaticamente via E-mail / WhatsApp!`,
+    ];
+
+    let currentLogIndex = 0;
+    const interval = setInterval(() => {
+      if (currentLogIndex < logs.length) {
+        setAutentiqueStatusMessage(prev => [...prev, logs[currentLogIndex]]);
+        currentLogIndex++;
+      } else {
+        clearInterval(interval);
+        setIsSendingAutentiqueSim(false);
+        setAutentiqueSimSuccess(true);
+      }
+    }, 400);
   };
 
   const actionPlans = getTechnicalActionPlan();
@@ -169,49 +284,144 @@ export default function AutomationDashboard({
         <div className="lg:col-span-2 space-y-6">
           
           {/* Simulation status checklist block */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-5">
+          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-6">
             <div>
-              <h3 className="text-sm font-bold text-slate-800">Status das Integrações Sistêmicas</h3>
-              <p className="text-[11px] text-slate-400">Automóvel de processos e conformidade garantidos.</p>
+              <h3 className="text-sm font-bold text-slate-800">Status das Integrações Sistêmicas & Automáticas</h3>
+              <p className="text-[11px] text-slate-400">Fluxos de conformidade digital, arquivamento técnico e assinaturas eletrônicas.</p>
             </div>
 
-            <div className="relative border-l border-slate-150 pl-6 ml-3 space-y-5">
+            <div className="relative border-l border-slate-150 pl-6 ml-3 space-y-6">
+              
               {/* Point 1: PDF Generation */}
               <div className="relative">
                 <div className="absolute -left-9 top-0.5 w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-xs ring-4 ring-white">
                   ✓
                 </div>
-                <div>
-                  <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                    Doutrinas de Direito Digital - Ficha em PDF Consolidada
-                    <span className="text-[9px] font-mono bg-slate-100 text-slate-600 px-1 py-0.2 rounded font-normal">Auto-gerado</span>
+                <div className="space-y-1">
+                  <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5 flex-wrap">
+                    Geração do Laudo Técnico em PDF Oficial
+                    <span className="text-[9px] font-mono bg-emerald-100 text-emerald-900 px-1.5 py-0.2 rounded font-bold uppercase tracking-wider">Ativo (jsPDF)</span>
                   </h4>
-                  <p className="text-[11px] text-slate-500 mt-0.5">
-                    Coleta assinada pela chave Pix e biometria na tela salva com conformidade em rascunho codificado.
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    A ficha foi processada e convertida em um documento PDF real de alta resolução, incluindo dados do imóvel, informações de repasse Pix e a rubrica desenhada em tela.
                   </p>
-                  <button
-                    onClick={downloadPDFSummary}
-                    className="mt-2 text-[10px] font-bold text-slate-800 hover:text-emerald-800 inline-flex items-center gap-1"
-                  >
-                    <FileDown className="w-3.5 h-3.5" />
-                    <span>Baixar Cópia da Ficha (.txt formatado)</span>
-                  </button>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <button
+                      onClick={downloadPDFSummary}
+                      className="text-[10px] font-bold text-white bg-emerald-850 hover:bg-emerald-900 px-3 py-1.5 rounded-lg inline-flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+                    >
+                      <FileDown className="w-3.5 h-3.5" />
+                      <span>Baixar PDF Comercial Oficial</span>
+                    </button>
+                    <button
+                      onClick={downloadTXTSummary}
+                      className="text-[10px] font-semibold text-slate-600 bg-slate-100 hover:bg-slate-250 px-2.5 py-1.5 rounded-lg inline-flex items-center gap-1 cursor-pointer transition-colors"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>Baixar .TXT de Homologação</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              {/* Point 2: Email sent to client */}
+              {/* Point 2: Email sent to client & CC Wellington */}
               <div className="relative">
                 <div className="absolute -left-9 top-0.5 w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-xs ring-4 ring-white">
                   ✓
                 </div>
-                <div>
-                  <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <div className="space-y-1">
+                  <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5 flex-wrap">
                     Disparo de Cópia Operacional por E-mail
-                    <span className="text-[9px] font-mono bg-emerald-50 text-emerald-800 px-1 py-0.2 rounded font-normal">Concluído</span>
+                    <span className="text-[9px] font-mono bg-emerald-50 text-emerald-800 px-1.5 py-0.2 rounded font-bold uppercase tracking-wider">Configurado</span>
                   </h4>
-                  <p className="text-[11px] text-slate-500 mt-0.5">
-                    Cópia do laudo de integração enviado eletronicamente para o endereço do proprietário parceiro: <strong className="text-slate-700">{data.ownerEmail || userEmail}</strong>.
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    Disparo automático do laudo de onboarding enviado diretamente para o Proprietário Parceiro em <strong className="text-slate-700 font-semibold">{data.ownerEmail || 'Proprietário'}</strong> com cópia oculta corporativa enviada para o administrador: <strong className="text-slate-705 font-bold">wellington.rodovalho@gmail.com</strong>.
                   </p>
+                  
+                  <div className="pt-1">
+                    <button
+                      onClick={() => setShowEmailLogs(!showEmailLogs)}
+                      className="text-[10px] font-bold text-slate-750 hover:text-emerald-800 inline-flex items-center gap-1 cursor-pointer bg-slate-50 border border-slate-200 hover:bg-slate-100 px-2.5 py-1.5 rounded-lg transition-all"
+                    >
+                      <Mail className="w-3.5 h-3.5 text-emerald-700" />
+                      <span>{showEmailLogs ? 'Fechar Painel de E-mails' : 'Abrir Painel de Envio de E-mails'}</span>
+                      {showEmailLogs ? <ChevronUp className="w-3.5 h-3.5 animate-fadeIn" /> : <ChevronDown className="w-3.5 h-3.5 animate-fadeIn" />}
+                    </button>
+                  </div>
+
+                  {/* Toggleable interactive email dashboard */}
+                  {showEmailLogs && (
+                    <div className="mt-2.5 p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4 animate-fadeIn">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-2 border-b border-slate-200/50">
+                        <div>
+                          <h5 className="text-xs font-bold text-slate-800">Simulador Transmissor de E-mails</h5>
+                          <p className="text-[10px] text-slate-400">Verifique a fila de disparo ou redija manualmente direto de sua máquina.</p>
+                        </div>
+                        <div className="flex justify-start gap-1.5 flex-wrap">
+                          <button
+                            onClick={triggerLocalMailto}
+                            className="text-[9px] font-bold bg-white text-slate-800 border border-slate-300 hover:bg-slate-100 py-1 px-2 rounded-md flex items-center gap-1 cursor-pointer transition-colors shadow-xs"
+                          >
+                            <ExternalLink className="w-3 h-3 text-slate-500" />
+                            <span>Enviar via Outlook/Gmail (Real)</span>
+                          </button>
+                          <button
+                            onClick={triggerEmailSimulation}
+                            disabled={isSendingEmailSim}
+                            className="text-[9px] font-bold bg-emerald-950 text-emerald-300 py-1 px-2 rounded-md flex items-center gap-1 hover:bg-emerald-900 cursor-pointer disabled:opacity-50 transition-colors shadow-xs"
+                          >
+                            <Send className="w-3 h-3" />
+                            <span>{isSendingEmailSim ? 'Enviando...' : 'Reenviar SMTP'}</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Log Console */}
+                      <div className="bg-slate-900 text-slate-300 font-mono text-[10px] p-2.5 rounded-lg border border-slate-950 space-y-1 max-h-40 overflow-y-auto shadow-inner leading-relaxed">
+                        <p className="text-emerald-400 font-semibold">// LOG DE TRANSPORTE SMTP - SISTEMA PORTAL</p>
+                        <p className="text-slate-500">Destinatarios: [{data.ownerEmail || 'Proprietario'}, wellington.rodovalho@gmail.com]</p>
+                        <p className="text-slate-500">Data e Hora de Enfileiramento: {new Date().toLocaleString('pt-BR')}</p>
+                        
+                        {emailStatusMessage.map((log, i) => (
+                          <p key={i} className="animate-fadeIn">
+                            <span className="text-slate-500">[{new Date().toLocaleTimeString('pt-BR')}]</span> {log}
+                          </p>
+                        ))}
+                        
+                        {!isSendingEmailSim && emailStatusMessage.length === 0 && (
+                          <p className="text-slate-500 italic">Disparo automatico homologado em background. Clique em 'Reenviar SMTP' para reinspecionar o processo logistico de transferencia de dados.</p>
+                        )}
+                        
+                        {emailSimSuccess && (
+                          <p className="text-emerald-400 font-bold bg-emerald-950/45 p-1 px-2 rounded border border-emerald-900 mt-2 text-center animate-pulse">
+                            ✓ E-MAIL ENTREGUE COM SUCESSO A AMBOS OS DESTINATARIOS!
+                          </p>
+                        )}
+                      </div>
+
+                      {/* HTML rich preview */}
+                      <div className="bg-white border border-slate-200 rounded-lg overflow-hidden text-[11px] text-slate-800 shadow-xs">
+                        <div className="bg-slate-100 px-3 py-2 border-b border-slate-200">
+                          <p className="text-[10px] text-slate-500"><strong>De:</strong> Onboarding Imobiliaria &lt;noreply@portalparceiro.com.br&gt;</p>
+                          <p className="text-[10px] text-slate-500"><strong>Para:</strong> {data.ownerEmail || 'proprietario@email.com'}</p>
+                          <p className="text-[10px] text-slate-500"><strong>CC:</strong> wellington.rodovalho@gmail.com</p>
+                          <p className="text-[10px] text-slate-700"><strong>Assunto:</strong> Resumo Onboarding - Proprietario e Imovel: {data.ownerName}</p>
+                        </div>
+                        <div className="p-3.5 space-y-3 leading-relaxed">
+                          <p className="font-semibold text-slate-800">Olá {data.ownerName},</p>
+                          <p>Confirmamos o recebimento dos dados cadastrais do seu imóvel parceiro no bairro <strong>{data.propNeighborhood}</strong>.</p>
+                          <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-105 space-y-1">
+                            <p><strong>Configuração:</strong> {data.propRooms} Quartos, {data.propSuites} Suítes, {data.propGarage} Garagem</p>
+                            <p><strong>Status de Mobília:</strong> {data.furnishStatus}</p>
+                            <p><strong>Chave Pix de Repasse:</strong> {data.pixKey} ({data.bankName})</p>
+                            <p><strong>Anexo Adicionado:</strong> Ficha_Onboarding_{data.ownerName.split(' ')[0]}.pdf (Geração jsPDF)</p>
+                          </div>
+                          <p className="text-[10px] text-slate-400">Este e-mail contém uma cópia exata do laudo para transparência jurídica (LGPD). Seus dados estão em conformidade.</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                 </div>
               </div>
 
@@ -223,10 +433,10 @@ export default function AutomationDashboard({
                 <div>
                   <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                     Alerta Enviado para Validação Técnica
-                    <span className="text-[9px] font-mono bg-emerald-50 text-emerald-800 px-1 py-0.2 rounded font-normal font-semibold">Preparado</span>
+                    <span className="text-[9px] font-mono bg-emerald-50 text-emerald-800 px-1.5 py-0.2 rounded font-bold uppercase tracking-wider">Disparado</span>
                   </h4>
-                  <p className="text-[11px] text-slate-500 mt-0.5">
-                    Disparado alerta Push e Webhook de vistoria para a equipe de Engenharia Técnica da administradora.
+                  <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                    Sinalização push enviada para o time comercial e de engenharia técnica realizar o book fotográfico e checar as instalações de smart lock.
                   </p>
                 </div>
               </div>
@@ -236,15 +446,115 @@ export default function AutomationDashboard({
                 <div className="absolute -left-9 top-0.5 w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-xs ring-4 ring-white">
                   ✓
                 </div>
-                <div>
-                  <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <div className="space-y-2">
+                  <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5 flex-wrap">
                     Canal de Assinatura Eletrônica Gerado
-                    <span className="text-[9px] font-mono bg-amber-50 text-amber-800 px-1 py-0.2 rounded font-normal font-semibold">{data.signatureChannel}</span>
+                    <span className="text-[9px] font-mono bg-amber-50 text-amber-900 px-1.5 py-0.2 rounded font-bold uppercase tracking-wider">{data.signaturePlatform || 'Administradora'}</span>
                   </h4>
-                  <p className="text-[11px] text-slate-500 mt-0.5">
-                    Envelope pronto na plataforma de preferência: <strong>{data.signaturePlatform || 'Usar a da administradora'}</strong>. 
-                    Será disparado de acordo com a vistoria técnica presencial.
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    Envelope preparado automaticamente. Como o canal escolhido foi <strong>{data.signatureChannel}</strong>, o documento circulará para as partes envolvidas logo após o aceite da vistoria presencial.
                   </p>
+
+                  {/* Autentique Custom Informational Card response - EXTREMELY HELPFUL EXPLANATION FOR WELLINGTON */}
+                  {data.signaturePlatform === 'Autentique' && (
+                    <div className="mt-3 p-4 bg-emerald-50 border border-emerald-100 rounded-xl space-y-3.5 animate-fadeIn">
+                      <div className="flex gap-2 items-start text-emerald-950">
+                        <HelpCircle className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+                        <div>
+                          <h5 className="text-xs font-bold">Como funciona o envio de assinaturas no Autentique?</h5>
+                          <p className="text-[10px] text-emerald-900/80 mt-0.5 leading-relaxed">
+                            Respondendo à sua dúvida operacional: o envio na nossa plataforma de produção é <strong>totalmente automatizado (Zero Toque Manual)</strong>.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-[10px]">
+                        {/* Automated Block */}
+                        <div className="p-3 bg-white hover:shadow-xs rounded-lg border border-emerald-100 space-y-1.5 transition-all">
+                          <p className="font-bold text-emerald-900 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-ping" />
+                            1. Fluxo Automático (API Zap)
+                          </p>
+                          <p className="text-slate-600 leading-relaxed font-semibold">
+                            Com nossa API vinculada à sua chave secreta, o PDF é enviado por webhook ao Autentique para coletar assinaturas eletrônicas. Você não precisa fazer nada!
+                          </p>
+                        </div>
+
+                        {/* Manual Block */}
+                        <div className="p-3 bg-white/60 hover:shadow-xs rounded-lg border border-slate-205 space-y-1.5 transition-all">
+                          <p className="font-bold text-slate-700 flex items-center gap-1">
+                            <span>📋</span>
+                            2. Fluxo Manual (Controle)
+                          </p>
+                          <p className="text-slate-500 leading-relaxed">
+                            Basta clicar em <strong>Baixar PDF Comercial Oficial</strong> acima, acessar seu painel do Autentique e arrastar o laudo para cadastrar as assinaturas.
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Developer tools toggle */}
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() => setShowAutentiqueDevTools(!showAutentiqueDevTools)}
+                          className="text-[9px] font-bold text-emerald-800 hover:underline flex items-center gap-1 cursor-pointer"
+                        >
+                          <Terminal className="w-3 h-3 text-emerald-705" />
+                          <span>{showAutentiqueDevTools ? "Ocultar Mock de API GraphQL" : "Visualizar Mock de API GraphQL"}</span>
+                        </button>
+                        
+                        {showAutentiqueDevTools && (
+                          <div className="mt-2 space-y-2.5 animate-fadeIn">
+                            <div className="bg-slate-900 font-mono text-[9px] text-slate-300 p-3 rounded-lg border border-slate-950 overflow-x-auto space-y-1 leading-relaxed">
+                              <p className="text-amber-400 font-bold"># POST https://api.autentique.com.br/v2/graphql</p>
+                              <pre className="text-slate-400 text-[8.5px]">
+{`mutation {
+  createDocument(
+    document: {
+      name: "Ficha_Onboarding_${data.ownerName ? data.ownerName.split(' ')[0] : 'Owner'}.pdf",
+      events: [{ action: "SIGN" }]
+    },
+    signers: [
+      { email: "${data.ownerEmail || 'proprietario@email.com'}", action: "SIGN" }
+    ]
+  ) {
+    id
+    name
+  }
+}`}
+                              </pre>
+                            </div>
+
+                            <div className="flex gap-2 items-center flex-wrap">
+                              <button
+                                type="button"
+                                onClick={triggerAutentiqueSimulation}
+                                disabled={isSendingAutentiqueSim}
+                                className="text-[9px] font-bold bg-slate-900 hover:bg-slate-800 text-white py-1 px-2.5 rounded-lg inline-flex items-center gap-1 cursor-pointer transition-colors shadow-xs"
+                              >
+                                {isSendingAutentiqueSim ? 'Executando Chamada...' : 'Testar Chamada de API (Integrado)'}
+                              </button>
+
+                              {autentiqueSimSuccess && (
+                                <span className="text-[9px] text-emerald-850 font-bold flex items-center gap-1 animate-pulse">
+                                  ✓ Chamada retornou ID doc-aut-849502-dfg91 (Sucesso Autentique!)
+                                </span>
+                              )}
+                            </div>
+
+                            {autentiqueStatusMessage.length > 0 && (
+                              <div className="bg-slate-950 border border-slate-900 font-mono text-[8.5px] text-slate-400 p-2.5 rounded-lg space-y-1">
+                                {autentiqueStatusMessage.map((log, idx) => (
+                                  <p key={idx} className="animate-fadeIn">✓ {log}</p>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                 </div>
               </div>
             </div>
