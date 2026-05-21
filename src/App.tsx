@@ -420,7 +420,7 @@ export default function App() {
           <div className="flex items-center gap-2">
             <Building2 className="w-5 h-5 text-emerald-800" />
             <h1 className="text-base font-extrabold tracking-tight text-slate-905">
-              Portal de Cadastro do Proprietário
+              Cadastro do Proprietário e Imóveis
             </h1>
             <span className="text-[10px] bg-slate-100 text-slate-500 py-0.5 px-2 rounded-full font-bold hidden sm:inline">
               V2.5
