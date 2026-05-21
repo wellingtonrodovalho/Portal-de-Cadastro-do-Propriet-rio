@@ -1,0 +1,6 @@
+{
+  "name": "Cadastro de Proprietários",
+  "description": "Formulário avançado e inteligente para cadastro de proprietários e imóveis parceiros, com assinatura digital, validação de dados e simulação de automação de PDF pós-envio.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
