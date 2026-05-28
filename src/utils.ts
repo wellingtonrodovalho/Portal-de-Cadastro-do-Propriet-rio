@@ -67,6 +67,11 @@ SEÇÃO 1: DADOS PESSOAIS DO PROPRIETÁRIO
 ------------------------------------------------------------------------
 Proprietário: ${data.ownerName || 'Não preenchido'}
 CPF/CNPJ: ${data.ownerTaxId || 'Não preenchido'}
+RG: ${data.ownerRG || 'Não preenchido'} / Emissor: ${data.ownerRgIssuer || 'Não preenchido'}
+Data de Nascimento: ${data.ownerBirthDate || 'Não preenchido'}
+Nacionalidade: ${data.ownerNationality || 'Não preenchido'}
+Estado Civil: ${data.ownerMaritalStatus || 'Não preenchido'}${data.ownerMarriageRegime ? ` (Regime: ${data.ownerMarriageRegime})` : ''}
+Profissão: ${data.ownerProfession || 'Não preenchido'}
 E-mail principal: ${data.ownerEmail || 'Não preenchido'}
 Telefone/WhatsApp: ${data.ownerPhone || 'Não preenchido'}
 Residência Atual: ${data.ownerAddress || 'Não preenchido'}
@@ -193,6 +198,18 @@ export function downloadRealPDF(data: any) {
   addSectionTitle("1. DADOS PESSOAIS DO PROPRIETARIO");
   addField("Nome Completo", data.ownerName);
   addField("CPF/CNPJ", data.ownerTaxId);
+  addField("RG", data.ownerRG);
+  addField("Orgao Expedidor do RG", data.ownerRgIssuer);
+  const formatDateBR = (isoDate: string) => {
+    if (!isoDate) return 'Nao informado';
+    const pts = isoDate.split('-');
+    if (pts.length === 3) return `${pts[2]}/${pts[1]}/${pts[0]}`;
+    return isoDate;
+  };
+  addField("Data de Nascimento", formatDateBR(data.ownerBirthDate));
+  addField("Nacionalidade", data.ownerNationality);
+  addField("Estado Civil", data.ownerMaritalStatus + (data.ownerMarriageRegime ? ` (Regime: ${data.ownerMarriageRegime})` : ''));
+  addField("Profissao", data.ownerProfession);
   addField("E-mail principal", data.ownerEmail);
   addField("Telefone/WhatsApp", data.ownerPhone);
   addField("Endereco Atual", data.ownerAddress);

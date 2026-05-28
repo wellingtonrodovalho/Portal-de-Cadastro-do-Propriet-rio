@@ -117,6 +117,168 @@ export default function PersonalDetailsForm({ data, updateData, errors }: Person
           )}
         </div>
 
+        {/* RG do Proprietário */}
+        <div className="space-y-1.5">
+          <label htmlFor="ownerRG" className="block text-xs font-semibold text-slate-700 tracking-wide">
+            RG do Proprietário <span className="text-rose-500">*</span>
+          </label>
+          <div className="relative">
+            <FileText className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              id="ownerRG"
+              type="text"
+              placeholder="Ex: 0000000-0"
+              value={data.ownerRG}
+              onChange={(e) => updateData({ ownerRG: e.target.value })}
+              className={`w-full pl-10 pr-4 py-2.5 bg-slate-50/50 rounded-xl border ${
+                errors.ownerRG ? 'border-rose-400 focus:border-rose-500 bg-rose-50/10' : 'border-slate-200 focus:border-emerald-500 focus:bg-white'
+              } outline-none text-sm transition-all text-slate-800`}
+            />
+          </div>
+          {errors.ownerRG ? (
+            <p className="text-[11px] text-rose-500">{errors.ownerRG}</p>
+          ) : (
+            <p className="text-[10px] text-slate-400">Número do documento de identidade.</p>
+          )}
+        </div>
+
+        {/* Órgão Expedidor */}
+        <div className="space-y-1.5">
+          <label htmlFor="ownerRgIssuer" className="block text-xs font-semibold text-slate-700 tracking-wide">
+            Órgão Expedidor do RG <span className="text-rose-500">*</span>
+          </label>
+          <div className="relative">
+            <FileText className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              id="ownerRgIssuer"
+              type="text"
+              placeholder="Ex: SSP-GO"
+              value={data.ownerRgIssuer}
+              onChange={(e) => updateData({ ownerRgIssuer: e.target.value })}
+              className={`w-full pl-10 pr-4 py-2.5 bg-slate-50/50 rounded-xl border ${
+                errors.ownerRgIssuer ? 'border-rose-400 focus:border-rose-500 bg-rose-50/10' : 'border-slate-200 focus:border-emerald-500 focus:bg-white'
+              } outline-none text-sm transition-all text-slate-800`}
+            />
+          </div>
+          {errors.ownerRgIssuer ? (
+            <p className="text-[11px] text-rose-500">{errors.ownerRgIssuer}</p>
+          ) : (
+            <p className="text-[10px] text-slate-400">Ex: SSP-GO, SSP-SP, Detran-RJ etc.</p>
+          )}
+        </div>
+
+        {/* Data de Nascimento */}
+        <div className="space-y-1.5">
+          <label htmlFor="ownerBirthDate" className="block text-xs font-semibold text-slate-700 tracking-wide">
+            Data de Nascimento <span className="text-rose-500">*</span>
+          </label>
+          <input
+            id="ownerBirthDate"
+            type="date"
+            value={data.ownerBirthDate}
+            onChange={(e) => updateData({ ownerBirthDate: e.target.value })}
+            className={`w-full px-4 py-2.5 bg-slate-50/50 rounded-xl border ${
+              errors.ownerBirthDate ? 'border-rose-400 focus:border-rose-500 bg-rose-50/10' : 'border-slate-200 focus:border-emerald-500 focus:bg-white'
+            } outline-none text-sm transition-all text-slate-800 cursor-pointer`}
+          />
+          {errors.ownerBirthDate && (
+            <p className="text-[11px] text-rose-500">{errors.ownerBirthDate}</p>
+          )}
+        </div>
+
+        {/* Nacionalidade */}
+        <div className="space-y-1.5">
+          <label htmlFor="ownerNationality" className="block text-xs font-semibold text-slate-700 tracking-wide">
+            Nacionalidade <span className="text-rose-500">*</span>
+          </label>
+          <input
+            id="ownerNationality"
+            type="text"
+            placeholder="Ex: Brasileiro(a)"
+            value={data.ownerNationality}
+            onChange={(e) => updateData({ ownerNationality: e.target.value })}
+            className={`w-full px-4 py-2.5 bg-slate-50/50 rounded-xl border ${
+              errors.ownerNationality ? 'border-rose-400 focus:border-rose-500 bg-rose-50/10' : 'border-slate-200 focus:border-emerald-500 focus:bg-white'
+            } outline-none text-sm transition-all text-slate-800`}
+          />
+          {errors.ownerNationality && (
+            <p className="text-[11px] text-rose-500">{errors.ownerNationality}</p>
+          )}
+        </div>
+
+        {/* Estado Civil */}
+        <div className="space-y-1.5">
+          <label htmlFor="ownerMaritalStatus" className="block text-xs font-semibold text-slate-700 tracking-wide">
+            Estado Civil <span className="text-rose-500">*</span>
+          </label>
+          <select
+            id="ownerMaritalStatus"
+            value={data.ownerMaritalStatus}
+            onChange={(e) => {
+              const val = e.target.value as any;
+              updateData({
+                ownerMaritalStatus: val,
+                ownerMarriageRegime: (val === 'Casado(a)' || val === 'União Estável') ? data.ownerMarriageRegime : ''
+              });
+            }}
+            className={`w-full px-4 py-2.5 bg-slate-50/50 rounded-xl border ${
+              errors.ownerMaritalStatus ? 'border-rose-400 focus:border-rose-500 bg-rose-50/10' : 'border-slate-200 focus:border-emerald-500 focus:bg-white'
+            } outline-none text-sm transition-all text-slate-800 cursor-pointer`}
+          >
+            <option value="">Selecione...</option>
+            <option value="Solteiro(a)">Solteiro(a)</option>
+            <option value="Casado(a)">Casado(a)</option>
+            <option value="Divorciado(a)">Divorciado(a)</option>
+            <option value="Viúvo(a)">Viúvo(a)</option>
+            <option value="União Estável">União Estável</option>
+          </select>
+          {errors.ownerMaritalStatus && (
+            <p className="text-[11px] text-rose-500">{errors.ownerMaritalStatus}</p>
+          )}
+        </div>
+
+        {/* Regime de Bens (Casado ou União Estável) */}
+        {(data.ownerMaritalStatus === 'Casado(a)' || data.ownerMaritalStatus === 'União Estável') && (
+          <div className="space-y-1.5">
+            <label htmlFor="ownerMarriageRegime" className="block text-xs font-semibold text-slate-700 tracking-wide">
+              Regime de Bens <span className="text-rose-500">*</span>
+            </label>
+            <input
+              id="ownerMarriageRegime"
+              type="text"
+              placeholder="Ex: Comunhão Parcial"
+              value={data.ownerMarriageRegime || ''}
+              onChange={(e) => updateData({ ownerMarriageRegime: e.target.value })}
+              className={`w-full px-4 py-2.5 bg-slate-50/50 rounded-xl border ${
+                errors.ownerMarriageRegime ? 'border-rose-400 focus:border-rose-500 bg-rose-50/10' : 'border-slate-200 focus:border-emerald-500 focus:bg-white'
+              } outline-none text-sm transition-all text-slate-800`}
+            />
+            {errors.ownerMarriageRegime && (
+              <p className="text-[11px] text-rose-500">{errors.ownerMarriageRegime}</p>
+            )}
+          </div>
+        )}
+
+        {/* Profissão */}
+        <div className="space-y-1.5">
+          <label htmlFor="ownerProfession" className="block text-xs font-semibold text-slate-700 tracking-wide">
+            Profissão <span className="text-rose-500">*</span>
+          </label>
+          <input
+            id="ownerProfession"
+            type="text"
+            placeholder="Ex: Engenheiro(a), Autônomo(a)"
+            value={data.ownerProfession}
+            onChange={(e) => updateData({ ownerProfession: e.target.value })}
+            className={`w-full px-4 py-2.5 bg-slate-50/50 rounded-xl border ${
+              errors.ownerProfession ? 'border-rose-400 focus:border-rose-500 bg-rose-50/10' : 'border-slate-200 focus:border-emerald-500 focus:bg-white'
+            } outline-none text-sm transition-all text-slate-800`}
+          />
+          {errors.ownerProfession && (
+            <p className="text-[11px] text-rose-500">{errors.ownerProfession}</p>
+          )}
+        </div>
+
         {/* Telefone/WhatsApp */}
         <div className="space-y-1.5">
           <label htmlFor="ownerPhone" className="block text-xs font-semibold text-slate-700 tracking-wide">

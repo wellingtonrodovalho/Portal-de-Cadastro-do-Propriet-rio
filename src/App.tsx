@@ -26,6 +26,13 @@ export default function App() {
   const [showAdminLoginModal, setShowAdminLoginModal] = useState<boolean>(false);
   const [adminPasswordInput, setAdminPasswordInput] = useState<string>('');
   const [loginError, setLoginError] = useState<string>('');
+  const [customPassword, setCustomPassword] = useState<string>('');
+  const [modalTab, setModalTab] = useState<'login' | 'register'>('login');
+  
+  // Custom password registration inputs
+  const [registerCreci, setRegisterCreci] = useState<string>('');
+  const [registerNewPassword, setRegisterNewPassword] = useState<string>('');
+  const [registerError, setRegisterError] = useState<string>('');
 
   // Navigation states
   const [activeTab, setActiveTab] = useState<'form' | 'dashboard'>('form');
@@ -65,6 +72,10 @@ export default function App() {
       // Check if logged in as administrator (Wellington Rodovalho Fonseca)
       const adminVerifiedValue = localStorage.getItem('owner_admin_verified') === 'true';
       setIsAdmin(adminVerifiedValue);
+
+      // Fetch custom configured password
+      const savedPass = localStorage.getItem('owner_admin_custom_password') || '';
+      setCustomPassword(savedPass);
     } catch (e) {
       console.error('Failure reloading persisted data:', e);
     }
@@ -113,6 +124,13 @@ export default function App() {
     status[1] = !!(
       formData.ownerName.trim().length > 3 &&
       formData.ownerTaxId.trim().length >= 14 && // CPF has 14 chars with formatting
+      formData.ownerRG.trim() &&
+      formData.ownerRgIssuer.trim() &&
+      formData.ownerBirthDate &&
+      formData.ownerNationality.trim() &&
+      formData.ownerMaritalStatus &&
+      (!['Casado(a)', 'União Estável'].includes(formData.ownerMaritalStatus) || (formData.ownerMarriageRegime || '').trim()) &&
+      formData.ownerProfession.trim() &&
       s1EmailValid &&
       formData.ownerPhone.trim().length >= 13 && // (99) 9999-9999
       formData.ownerAddress.trim().length > 6 &&
@@ -179,6 +197,33 @@ export default function App() {
       }
       if (!formData.ownerTaxId.trim()) {
         currentErrors.ownerTaxId = 'O CPF ou CNPJ é obrigatório para identificação.';
+        isValid = false;
+      }
+      if (!formData.ownerRG.trim()) {
+        currentErrors.ownerRG = 'O número do RG é obrigatório.';
+        isValid = false;
+      }
+      if (!formData.ownerRgIssuer.trim()) {
+        currentErrors.ownerRgIssuer = 'O Órgão Expedidor do RG é obrigatório.';
+        isValid = false;
+      }
+      if (!formData.ownerBirthDate) {
+        currentErrors.ownerBirthDate = 'A data de nascimento é obrigatória.';
+        isValid = false;
+      }
+      if (!formData.ownerNationality.trim()) {
+        currentErrors.ownerNationality = 'A nacionalidade é obrigatória.';
+        isValid = false;
+      }
+      if (!formData.ownerMaritalStatus) {
+        currentErrors.ownerMaritalStatus = 'O estado civil é obrigatório.';
+        isValid = false;
+      } else if ((formData.ownerMaritalStatus === 'Casado(a)' || formData.ownerMaritalStatus === 'União Estável') && !(formData.ownerMarriageRegime || '').trim()) {
+        currentErrors.ownerMarriageRegime = 'O regime de bens é obrigatório para casados ou união estável.';
+        isValid = false;
+      }
+      if (!formData.ownerProfession.trim()) {
+        currentErrors.ownerProfession = 'A profissão é obrigatória.';
         isValid = false;
       }
       if (!formData.ownerEmail.trim() || !formData.ownerEmail.includes('@')) {
@@ -365,8 +410,17 @@ export default function App() {
   };
 
   const handleAdminVerify = (password: string) => {
-    const cleanPass = password.trim().toLowerCase();
-    if (cleanPass === 'wellington' || cleanPass === 'admin' || cleanPass === 'wellington2026') {
+    const cleanPass = password.trim();
+    const cleanPassLower = cleanPass.toLowerCase();
+    
+    // Retrieve custom stored password
+    const storedCustomPass = localStorage.getItem('owner_admin_custom_password') || '';
+    
+    if (
+      cleanPassLower === 'wellington2026' ||
+      (storedCustomPass && cleanPass === storedCustomPass) ||
+      (storedCustomPass && cleanPassLower === storedCustomPass.toLowerCase())
+    ) {
       setIsAdmin(true);
       localStorage.setItem('owner_admin_verified', 'true');
       setActiveTab('dashboard');
@@ -377,6 +431,40 @@ export default function App() {
     } else {
       setLoginError('Senha de Administrador incorreta ou inválida!');
     }
+  };
+
+  const handleRegisterPersonalPassword = (creciOrCpf: string, newPass: string) => {
+    const cleanNumbers = creciOrCpf.replace(/\D/g, ''); // Extract numbers
+    const inputCleaned = creciOrCpf.trim().toLowerCase();
+    
+    // Validate if matching Wellington's details from CRECI (42695) or CPF (269.462.701-34)
+    const isValidCredential = 
+      cleanNumbers.includes('42695') || 
+      inputCleaned.includes('creci-go 42695') ||
+      cleanNumbers.includes('26946270134') || 
+      inputCleaned.includes('269.462.701-34') ||
+      cleanNumbers.includes('269462701'); // CPF start seq
+      
+    if (!isValidCredential) {
+      setRegisterError('Dados de validação profissional incorretos! Digite seu CRECI (CRECI-GO 42695) ou o seu CPF (269.462.701-34) para confirmar que é o Wellington.');
+      return;
+    }
+    
+    const trimmedPass = newPass.trim();
+    if (trimmedPass.length < 4) {
+      setRegisterError('Sua nova senha pessoal deve conter pelo menos 4 caracteres.');
+      return;
+    }
+    
+    // Persist custom password
+    localStorage.setItem('owner_admin_custom_password', trimmedPass);
+    setCustomPassword(trimmedPass);
+    setRegisterError('');
+    setRegisterCreci('');
+    setRegisterNewPassword('');
+    setModalTab('login');
+    setAdminPasswordInput(trimmedPass); // Auto fill for the screen
+    triggerToast('Sua nova senha pessoal foi cadastrada com sucesso! Clique em Confirmar para entrar.');
   };
 
   const handleAdminLogout = () => {
@@ -401,6 +489,13 @@ export default function App() {
     updateFormData({
       ownerName: 'Wellington Rodovalho Fonseca',
       ownerTaxId: '123.456.789-00',
+      ownerNationality: 'Brasileiro(a)',
+      ownerMaritalStatus: 'Casado(a)',
+      ownerMarriageRegime: 'Comunhão Parcial de Bens',
+      ownerProfession: 'Corretor de Imóveis',
+      ownerBirthDate: '1985-15-05',
+      ownerRG: '5482613',
+      ownerRgIssuer: 'SSP-GO',
       ownerEmail: 'Wellington.Rodovalho@gmail.com',
       ownerPhone: '(11) 98765-4321',
       ownerAddress: 'Avenida Brigadeiro Luís Antônio, 2300, Apto 91',
@@ -463,24 +558,24 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Direct Form vs Dashboard Tab toggler */}
-            <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-205 items-center">
-              <button
-                onClick={() => {
-                  setIsSubmittedSuccess(false);
-                  setActiveTab('form');
-                  setErrors({});
-                }}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-                  activeTab === 'form' && !isSubmittedSuccess
-                    ? 'bg-white text-slate-900 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-900'
-                }`}
-              >
-                Formulário Cadastro
-              </button>
-              
-              {isAdmin ? (
+            {/* Direct Form vs Dashboard Tab toggler (Only visible to verified admin) */}
+            {isAdmin && (
+              <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-205 items-center">
+                <button
+                  onClick={() => {
+                    setIsSubmittedSuccess(false);
+                    setActiveTab('form');
+                    setErrors({});
+                  }}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                    activeTab === 'form' && !isSubmittedSuccess
+                      ? 'bg-white text-slate-900 shadow-xs'
+                      : 'text-slate-500 hover:text-slate-900'
+                  }`}
+                >
+                  Formulário Cadastro
+                </button>
+                
                 <button
                   onClick={() => {
                     setIsSubmittedSuccess(false);
@@ -500,17 +595,8 @@ export default function App() {
                     </span>
                   )}
                 </button>
-              ) : (
-                <button
-                  onClick={() => setShowAdminLoginModal(true)}
-                  className="px-3 py-1.5 text-xs font-semibold text-slate-400 hover:text-slate-700 rounded-lg transition-all cursor-pointer flex items-center gap-1"
-                  title="Acesso exclusivo ao Administrador (Wellington Rodovalho Fonseca)"
-                >
-                  <Lock className="w-3 h-3 text-slate-400" />
-                  <span>Painel Admin</span>
-                </button>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Lock/Logout button when logged in as Admin */}
             {isAdmin && (
@@ -769,7 +855,7 @@ export default function App() {
               <div className="text-center">
                 <span className="text-[11px] text-slate-400 font-medium inline-flex items-center gap-1">
                   <HelpCircle className="w-3.5 h-3.5" />
-                  Dúvidas no preenchimento? Fale com nosso suporte jurídico pelo telefone (11) 3244-3015.
+                  Dúvidas no preenchimento? Fale comigo pelo telefone (62) 99151-4568.
                 </span>
               </div>
 
@@ -815,64 +901,179 @@ export default function App() {
               </div>
               <h3 className="text-base font-bold text-slate-900 leading-none">Acesso Restrito - Wellington Rodovalho Fonseca</h3>
               <p className="text-[11px] text-slate-400">
-                Digite a senha administrativa para liberar o Painel de Automação e as fichas de integração.
+                Painel administrativo de controle de automação e repasses de convênio.
               </p>
             </div>
 
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleAdminVerify(adminPasswordInput);
-              }}
-              className="space-y-4"
-            >
-              <div className="space-y-1 text-left">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Chave de Administrador (Senha)</label>
-                <input
-                  type="password"
-                  placeholder="Ex: wellington"
-                  value={adminPasswordInput}
-                  onChange={(e) => {
-                    setAdminPasswordInput(e.target.value);
-                    setLoginError('');
-                  }}
-                  className="w-full text-xs font-semibold px-4 py-3 rounded-xl border border-slate-200 outline-hidden focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 transition-all bg-slate-50/50"
-                  autoFocus
-                />
-                
-                {loginError && (
-                  <p className="text-[10px] text-rose-600 font-bold flex items-center gap-1 pt-1 animate-bounce">
-                    <AlertCircle className="w-3.5 h-3.5" />
-                    <span>{loginError}</span>
-                  </p>
-                )}
-                
-                <p className="text-[9.5px] text-slate-400 leading-normal pt-1.5">
-                  Dica: Para fins de testes, homologação e avaliação comercial, utilize a chave <strong className="text-slate-600 font-bold">wellington</strong> (ou <strong className="text-slate-600 font-bold">admin</strong>).
-                </p>
-              </div>
+            {/* Premium Selector Tabs inside the modal */}
+            <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-205 text-xs">
+              <button
+                type="button"
+                onClick={() => {
+                  setModalTab('login');
+                  setLoginError('');
+                  setRegisterError('');
+                }}
+                className={`flex-1 py-1.5 font-bold rounded-lg transition-all cursor-pointer ${
+                  modalTab === 'login'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                Entrar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setModalTab('register');
+                  setLoginError('');
+                  setRegisterError('');
+                }}
+                className={`flex-1 py-1.5 font-bold rounded-lg transition-all cursor-pointer ${
+                  modalTab === 'register'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                Cadastrar Senha
+              </button>
+            </div>
 
-              <div className="grid grid-cols-2 gap-2.5 pt-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowAdminLoginModal(false);
-                    setAdminPasswordInput('');
-                    setLoginError('');
-                  }}
-                  className="py-2.5 px-4 rounded-xl text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-emerald-950 hover:bg-emerald-900 transition-colors shadow-sm cursor-pointer"
-                >
-                  Confirmar
-                </button>
-              </div>
+            {modalTab === 'login' ? (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleAdminVerify(adminPasswordInput);
+                }}
+                className="space-y-4"
+              >
+                <div className="space-y-1 text-left">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Sua Senha</label>
+                    <button
+                      type="button"
+                      onClick={() => setModalTab('register')}
+                      className="text-[10px] font-bold text-emerald-700 hover:underline"
+                    >
+                      Criar Senha Pessoal?
+                    </button>
+                  </div>
+                  <input
+                    type="password"
+                    placeholder="Digite sua senha"
+                    value={adminPasswordInput}
+                    onChange={(e) => {
+                      setAdminPasswordInput(e.target.value);
+                      setLoginError('');
+                    }}
+                    className="w-full text-xs font-semibold px-4 py-3 rounded-xl border border-slate-200 outline-hidden focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 transition-all bg-slate-50/50"
+                    autoFocus
+                  />
+                  
+                  {loginError && (
+                    <p className="text-[10px] text-rose-600 font-bold flex items-center gap-1 pt-1 animate-bounce">
+                      <AlertCircle className="w-3.5 h-3.5" />
+                      <span>{loginError}</span>
+                    </p>
+                  )}
 
-            </form>
+                  {customPassword && (
+                    <p className="text-[9.5px] text-emerald-700 font-medium leading-normal pt-1.5 bg-emerald-50/40 p-2 rounded-xl border border-emerald-100/30">
+                      🔒 Você já possui uma senha pessoal cadastrada de forma segura em seu navegador.
+                    </p>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-2.5 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAdminLoginModal(false);
+                      setAdminPasswordInput('');
+                      setLoginError('');
+                    }}
+                    className="py-2.5 px-4 rounded-xl text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-emerald-950 hover:bg-emerald-900 transition-colors shadow-sm cursor-pointer"
+                  >
+                    Confirmar
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleRegisterPersonalPassword(registerCreci, registerNewPassword);
+                }}
+                className="space-y-4 text-left"
+              >
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">1. Identificação de Wellington (CPF ou CRECI)</label>
+                    <input
+                      type="text"
+                      placeholder="CRECI-GO 42695 ou CPF"
+                      value={registerCreci}
+                      onChange={(e) => {
+                        setRegisterCreci(e.target.value);
+                        setRegisterError('');
+                      }}
+                      className="w-full text-xs font-semibold px-4 py-2.5 rounded-xl border border-slate-200 outline-hidden focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 transition-all bg-slate-50/50"
+                      autoFocus
+                    />
+                    <p className="text-[9.5px] text-slate-400 leading-snug">
+                      Informe seu CRECI (<strong className="text-slate-605">42695</strong>) ou CPF (<strong className="text-slate-605">269.462.701-34</strong>) para provar sua titularidade e liberar o cadastro.
+                    </p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">2. Defina sua Senha Pessoal</label>
+                    <input
+                      type="password"
+                      placeholder="Mínimo 4 caracteres"
+                      value={registerNewPassword}
+                      onChange={(e) => {
+                        setRegisterNewPassword(e.target.value);
+                        setRegisterError('');
+                      }}
+                      className="w-full text-xs font-semibold px-4 py-2.5 rounded-xl border border-slate-200 outline-hidden focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 transition-all bg-slate-50/50"
+                    />
+                  </div>
+
+                  {registerError && (
+                    <p className="text-[10px] text-rose-600 font-bold flex items-center gap-1 pt-0.5 leading-normal">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>{registerError}</span>
+                    </p>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-2.5 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setModalTab('login');
+                      setRegisterError('');
+                    }}
+                    className="py-2.5 px-4 rounded-xl text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer text-center"
+                  >
+                    Voltar
+                  </button>
+                  <button
+                    type="submit"
+                    className="py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-emerald-950 hover:bg-emerald-900 transition-colors shadow-sm cursor-pointer"
+                  >
+                    Salvar Senha
+                  </button>
+                </div>
+              </form>
+            )}
+
           </div>
         </div>
       )}
@@ -881,12 +1082,12 @@ export default function App() {
       <footer className="bg-white border-t border-slate-100 py-8 text-xs text-slate-500 shrink-0">
         <div className="max-w-5xl mx-auto px-4 space-y-6">
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left border-b border-slate-100 pb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-center border-b border-slate-100 pb-6">
             
             {/* Col 1: Broker Info */}
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 flex flex-col items-center">
               <h4 className="font-bold text-slate-800 text-[11px] uppercase tracking-wider">Corretor de Imóveis</h4>
-              <p className="text-[11px] font-semibold text-slate-755">WELLINGTON RODOVALHO FONSECA</p>
+              <p className="text-[11px] font-semibold text-slate-700">WELLINGTON RODOVALHO FONSECA</p>
               <div className="text-[10px] text-slate-400 space-y-0.5">
                 <p><span className="font-medium text-slate-500">CRECI:</span> <strong className="text-slate-600">CRECI-GO 42695</strong></p>
                 <p><span className="font-medium text-slate-500">CNAI:</span> <strong className="text-slate-600">54826</strong></p>
@@ -894,24 +1095,15 @@ export default function App() {
               </div>
             </div>
 
-            {/* Col 2: Registry & Fiscal */}
-            <div className="space-y-1.5">
-              <h4 className="font-bold text-slate-800 text-[11px] uppercase tracking-wider">Identificação Fiscal</h4>
-              <div className="text-[10px] text-slate-400 space-y-1">
-                <p><span className="font-medium text-slate-500">CPF:</span> <strong className="font-mono text-slate-705">269.462.701-34</strong></p>
-                <p><span className="font-medium text-slate-500">CAEPF:</span> <strong className="font-mono text-slate-705">269.462.701/001-49</strong></p>
-              </div>
-            </div>
-
-            {/* Col 3: Financial Key */}
-            <div className="space-y-1.5">
+            {/* Col 2: Financial Key */}
+            <div className="space-y-1.5 flex flex-col items-center">
               <h4 className="font-bold text-slate-800 text-[11px] uppercase tracking-wider">Canal Oficial Financeiro</h4>
               <p className="text-[10px] text-slate-400 leading-normal">
                 Para repasses, reservas e depósitos de caução:
               </p>
               <div className="bg-emerald-50/50 border border-emerald-100 px-2.5 py-1.5 rounded-xl inline-block mt-1">
-                <p className="text-[10px] font-bold text-emerald-950 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-605 animate-pulse"></span>
+                <p className="text-[10px] font-bold text-emerald-950 flex items-center justify-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
                   <span>Chave Pix:</span> 
                   <strong className="font-mono select-all text-emerald-900">reservas@alugagoias.com.br</strong>
                 </p>
@@ -920,9 +1112,21 @@ export default function App() {
 
           </div>
 
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-3 text-center sm:text-left text-[10px] text-slate-400">
-            <p className="font-semibold text-slate-500">Administradora Comercial & Convenções Digitais</p>
-            <p className="max-w-md sm:text-right leading-normal">Em conformidade com o Regulamento de Locações Prediais Urbano, Lei Geral de Proteção de Dados (LGPD) e diretrizes autorizadas do Comitê de Direito Digital.</p>
+          <div className="flex flex-col items-center justify-center gap-3 text-center text-[10px] text-slate-400">
+            <p className="font-semibold text-slate-500 flex items-center justify-center gap-1.5">
+              <span>Wellington Rodovalho Fonseca — Corretor de Imóveis</span>
+              {!isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => setShowAdminLoginModal(true)}
+                  className="p-1 text-slate-300 hover:text-slate-600 transition-colors cursor-pointer"
+                  title="Acesso Restrito"
+                >
+                  <Lock className="w-3 h-3" />
+                </button>
+              )}
+            </p>
+            <p className="max-w-2xl leading-normal">Em conformidade com a Lei do Inquilinato (Lei nº 8.245/91) e a Lei Geral de Proteção de Dados (LGPD).</p>
           </div>
 
         </div>

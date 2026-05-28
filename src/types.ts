@@ -2,6 +2,13 @@ export interface PropertyOwnerData {
   // SEÇÃO 1: Dados Pessoais do Proprietário
   ownerName: string;
   ownerTaxId: string; // CPF or CNPJ
+  ownerNationality: string;
+  ownerMaritalStatus: 'Solteiro(a)' | 'Casado(a)' | 'Divorciado(a)' | 'Viúvo(a)' | 'União Estável' | '';
+  ownerMarriageRegime?: string; // Regime de bens
+  ownerProfession: string;
+  ownerBirthDate: string; // YYYY-MM-DD
+  ownerRG: string;
+  ownerRgIssuer: string; // Órgão Expedidor
   ownerEmail: string;
   ownerPhone: string;
   ownerAddress: string;
@@ -54,6 +61,13 @@ export interface PropertyOwnerData {
 export const INITIAL_FORM_DATA: PropertyOwnerData = {
   ownerName: '',
   ownerTaxId: '',
+  ownerNationality: '',
+  ownerMaritalStatus: '',
+  ownerMarriageRegime: '',
+  ownerProfession: '',
+  ownerBirthDate: '',
+  ownerRG: '',
+  ownerRgIssuer: '',
   ownerEmail: '',
   ownerPhone: '',
   ownerAddress: '',
